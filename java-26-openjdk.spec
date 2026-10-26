@@ -1,5 +1,5 @@
 %bcond_with gcc
-%bcond_without system_jdk
+%bcond_with system_jdk
 # Without bootstrap, the package BuildRequires
 # rpm-javamacros (which in turn requires this package)
 # so jmod(*) and java(*) Provides: can be generated correctly.
@@ -20,7 +20,7 @@
 %define major %(echo %{version} |cut -d. -f1)
 %define minor %(echo %{version} |cut -d. -f2-3)
 %define ver %(echo %{version} |rev |cut -d. -f2- |rev)
-%define subminor 4
+%define subminor 0
 #define is_head 1
 #For non-GA releases: %(echo %{version} |rev |cut -d. -f1 |rev)
 # OpenJDK X requires OpenJDK >= X-1 to build -- so we need
@@ -35,9 +35,9 @@
 # Set of architectures with libsleef.so
 %global sleef_arches %{aarch64}
 
-Name:		java-25-openjdk
-Version:	25.0.3.%{subminor}
-Release:	2
+Name:		java-26-openjdk
+Version:	26.0.2.1%{subminor}
+Release:	1
 Summary:	Java Runtime Environment (JRE) %{major}
 Group:		Development/Languages
 License:	GPLv2, ASL 1.1, ASL 2.0, LGPLv2.1
@@ -287,6 +287,13 @@ make -j1 bootcycle-images all docs
 %install
 mkdir -p %{buildroot}%{_jvmdir}
 cp -a build/images/jdk %{buildroot}%{_jvmdir}/java-%{major}-openjdk
+# JDK-8351842 (in 25.0.5): release builds no longer copy external native
+# debug symbols into the JDK image. They are only in the symbols image.
+# Put them back next to the binaries. HotSpot opens lib*.debuginfo by
+# that name, and find-debuginfo then leaves the *.debuginfo.gdb-index
+# sidecars packaged below. --with-external-symbols-in-bundles=full would
+# instead store these files inside the jmod archives.
+cp -a build/images/symbols/. %{buildroot}%{_jvmdir}/java-%{major}-openjdk/
 ln -s java-%{major}-openjdk %{buildroot}%{_jvmdir}/jre-%{major}-openjdk
 
 %if %{with system_jdk}
@@ -463,7 +470,6 @@ chmod +x %{buildroot}%{_sysconfdir}/profile.d/*.*sh
 %{_jvmdir}/java-%{major}-openjdk/bin/jmod
 %{_jvmdir}/java-%{major}-openjdk/bin/jnativescan
 %{_jvmdir}/java-%{major}-openjdk/bin/jps
-%{_jvmdir}/java-%{major}-openjdk/bin/jrunscript
 %{_jvmdir}/java-%{major}-openjdk/bin/jshell
 %{_jvmdir}/java-%{major}-openjdk/bin/jstack
 %{_jvmdir}/java-%{major}-openjdk/bin/jstat
@@ -484,7 +490,6 @@ chmod +x %{buildroot}%{_sysconfdir}/profile.d/*.*sh
 %{_mandir}/man1/jinfo.1*
 %{_mandir}/man1/jmap.1*
 %{_mandir}/man1/jps.1*
-%{_mandir}/man1/jrunscript.1*
 %{_mandir}/man1/jstack.1*
 %{_mandir}/man1/jstat.1*
 %{_mandir}/man1/jstatd.1*
@@ -503,7 +508,6 @@ chmod +x %{buildroot}%{_sysconfdir}/profile.d/*.*sh
 %{_jvmdir}/java-%{major}-openjdk/man/man1/jinfo.1*
 %{_jvmdir}/java-%{major}-openjdk/man/man1/jmap.1*
 %{_jvmdir}/java-%{major}-openjdk/man/man1/jps.1*
-%{_jvmdir}/java-%{major}-openjdk/man/man1/jrunscript.1*
 %{_jvmdir}/java-%{major}-openjdk/man/man1/jstack.1*
 %{_jvmdir}/java-%{major}-openjdk/man/man1/jstat.1*
 %{_jvmdir}/java-%{major}-openjdk/man/man1/jstatd.1*
@@ -540,7 +544,6 @@ chmod +x %{buildroot}%{_sysconfdir}/profile.d/*.*sh
 %doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.jfr
 %doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.jlink
 %doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.jshell
-%doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.jsobject
 %doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.jstatd
 %doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.localedata
 %doc %{_jvmdir}/java-%{major}-openjdk/legal/jdk.management.agent
@@ -614,7 +617,6 @@ chmod +x %{buildroot}%{_sysconfdir}/profile.d/*.*sh
 %modpackage jdk.jlink
 %modpackage jdk.jpackage
 %modpackage jdk.jshell
-%modpackage jdk.jsobject
 %modpackage jdk.jstatd
 %modpackage jdk.localedata
 %modpackage jdk.management.agent
